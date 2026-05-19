@@ -44,10 +44,11 @@ steps:
       cd $(System.DefaultWorkingDirectory)/infra/vm
 
       terraform init
-      -var="admin_username=$(admin_username)" \
-      -var="admin_password=$(admin_password)" \
 
-      terraform import azurerm_resource_group.rg "/subscriptions/6349a94a-bcc7-4da7-8f36-2f6bc3017bf7/resourceGroups/rg-selfhosted-dev"
+      terraform import \
+        -var "admin_username=$(admin_username)" \
+        -var "admin_password=$(admin_password)" \
+        azurerm_resource_group.rg "/subscriptions/6349a94a-bcc7-4da7-8f36-2f6bc3017bf7/resourceGroups/rg-selfhosted-dev"
 - task: TerraformTaskV4@4
   displayName: Terraform Apply
   inputs:
