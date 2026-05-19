@@ -4,6 +4,9 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
+variables:
+- group: terraform-vars
+
 steps:
 
 - task: TerraformInstaller@1
@@ -29,6 +32,8 @@ steps:
     command: 'plan'
     workingDirectory: 'infra/vm'
     environmentServiceNameAzureRM: 'terraform-interview'
+    commandOptions: '-var "admin_username=$(vm_username)" -var "admin_password=$(vm_password)"'
+
 
 - task: TerraformTaskV4@4
   displayName: Terraform Apply
@@ -37,3 +42,4 @@ steps:
     command: 'apply'
     workingDirectory: 'infra/vm'
     environmentServiceNameAzureRM: 'terraform-interview'
+    commandOptions: '-auto-approve -var "admin_username=$(vm_username)" -var "admin_password=$(vm_password)"'
