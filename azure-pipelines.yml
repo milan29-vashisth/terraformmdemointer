@@ -14,6 +14,7 @@ steps:
   displayName: Terraform Init
   inputs:
     provider: 'azurerm'
+    workingDirectory: 'infra/vm'
     command: 'init'
     backendServiceArm: 'terraform-interview'
     backendAzureRmResourceGroupName: 'rg-tfstate'
@@ -26,6 +27,7 @@ steps:
   inputs:
     provider: 'azurerm'
     command: 'plan'
+    workingDirectory: 'infra/vm'
     environmentServiceNameAzureRM: 'terraform-interview'
 
 - task: TerraformTaskV4@4
@@ -33,4 +35,5 @@ steps:
   inputs:
     provider: 'azurerm'
     command: 'apply'
+    workingDirectory: 'infra/vm'
     environmentServiceNameAzureRM: 'terraform-interview'
