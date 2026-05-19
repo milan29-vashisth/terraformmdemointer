@@ -72,6 +72,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   size                = "Standard_B2s"
   admin_username      = var.admin_username
   admin_password      = var.admin_password
+  
 
   disable_password_authentication = false
 
@@ -90,4 +91,9 @@ resource "azurerm_linux_virtual_machine" "vm" {
     sku       = "22_04-lts"
     version   = "latest"
   }
+    lifecycle {
+    ignore_changes = [
+      admin_password
+    ]
+    }
 }
