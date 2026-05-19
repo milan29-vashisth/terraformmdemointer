@@ -16,6 +16,10 @@ steps:
     provider: 'azurerm'
     command: 'init'
     backendServiceArm: 'terraform-interview'
+    backendAzureRmResourceGroupName: 'rg-tfstate'
+    backendAzureRmStorageAccountName: 'tfstate123'
+    backendAzureRmContainerName: 'tfstate'
+    backendAzureRmKey: "dev.terraform.tfstate"
 
 - task: TerraformTaskV4@4
   displayName: Terraform Plan
