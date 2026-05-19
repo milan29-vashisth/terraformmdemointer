@@ -17,8 +17,8 @@ steps:
     workingDirectory: 'infra/vm'
     command: 'init'
     backendServiceArm: 'terraform-interview'
-    backendAzureRmResourceGroupName: 'rg-tfstate'
-    backendAzureRmStorageAccountName: 'tfstate123'
+    backendAzureRmResourceGroupName: 'tf-backend-fordemopratice-rg'
+    backendAzureRmStorageAccountName: 'tfstate12345milan'
     backendAzureRmContainerName: 'tfstate'
     backendAzureRmKey: "dev.terraform.tfstate"
 
