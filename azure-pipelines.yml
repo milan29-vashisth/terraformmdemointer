@@ -7,50 +7,97 @@ pool:
 variables:
 - group: kv-secrets
 
-steps:
 
-- task: TerraformInstaller@1
-  inputs:
-    terraformVersion: '1.15.3'
+stages:
 
-- task: TerraformTaskV4@4
-  displayName: Terraform Init
-  inputs:
-    provider: 'azurerm'
-    workingDirectory: 'infra/vm'
-    command: 'init'
-    backendServiceArm: 'terraform-interview'
-    backendAzureRmResourceGroupName: 'tf-backend-fordemopratice-rg'
-    backendAzureRmStorageAccountName: 'tfstate12345milan'
-    backendAzureRmContainerName: 'tfstate'
-    backendAzureRmKey: 'dev.terraform.tfstate'
-
-- task: TerraformTaskV4@4
+# =========================
+# 1. PLAN STAGE
+# =========================
+- stage: Plan
   displayName: Terraform Plan
-  env:
-    TF_VAR_admin_username: $(admin-username)
-    TF_VAR_admin_password: $(admin-password)
-  inputs:
-    provider: 'azurerm'
-    command: 'plan'
-    workingDirectory: 'infra/vm'
-    environmentServiceNameAzureRM: 'terraform-interview'
-    commandOptions: '-lock-timeout=5m'
+  jobs:
+  - job: PlanJob
+    steps:
 
-- task: PublishPipelineArtifact@1
-  displayName: Publish Terraform Plan
-  inputs:
-    targetPath: 'infra/vm/tfplan'
-    artifact: 'tfplan'
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: '1.15.3'
 
-- task: TerraformTaskV4@4
+    - task: TerraformTaskV4@4
+      displayName: Init
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: 'infra/vm'
+        backendServiceArm: 'terraform-interview'
+        backendAzureRmResourceGroupName: 'tf-backend-fordemopratice-rg'
+        backendAzureRmStorageAccountName: 'tfstate12345milan'
+        backendAzureRmContainerName: 'tfstate'
+        backendAzureRmKey: 'dev.terraform.tfstate'
+
+    - task: TerraformTaskV4@4
+      displayName: Plan
+      env:
+        TF_VAR_admin_username: $(admin-username)
+        TF_VAR_admin_password: $(admin-password)
+      inputs:
+        provider: 'azurerm'
+        command: 'plan'
+        workingDirectory: 'infra/vm'
+        environmentServiceNameAzureRM: 'terraform-interview'
+        commandOptions: '-out=tfplan'
+
+    - task: PublishPipelineArtifact@1
+      displayName: Publish Plan Artifact
+      inputs:
+        targetPath: 'infra/vm/tfplan'
+        artifact: 'tfplan'
+
+
+# =========================
+# 2. APPROVAL STAGE
+# =========================
+- stage: Approval
+  displayName: Manual Approval Gate
+  dependsOn: Plan
+  condition: succeeded()
+
+  jobs:
+  - job: WaitForApproval
+    pool: server
+    steps:
+    - task: ManualValidation@0
+      inputs:
+        instructions: |
+          Please review Terraform plan artifact.
+          Approve only if infrastructure changes are expected.
+        onTimeout: 'reject'
+
+
+# =========================
+# 3. APPLY STAGE
+# =========================
+- stage: Apply
   displayName: Terraform Apply
-  env:
-    TF_VAR_admin_username: $(admin-username)
-    TF_VAR_admin_password: $(admin-password)
-  inputs:
-    provider: 'azurerm'
-    command: 'apply'
-    workingDirectory: 'infra/vm'
-    environmentServiceNameAzureRM: 'terraform-interview'
-    commandOptions: '-auto-approve -lock-timeout=5m'
+  dependsOn: Approval
+  condition: succeeded()
+
+  jobs:
+  - job: ApplyJob
+    steps:
+
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: '1.15.3'
+
+    - task: TerraformTaskV4@4
+      displayName: Apply
+      env:
+        TF_VAR_admin_username: $(admin-username)
+        TF_VAR_admin_password: $(admin-password)
+      inputs:
+        provider: 'azurerm'
+        command: 'apply'
+        workingDirectory: 'infra/vm'
+        environmentServiceNameAzureRM: 'terraform-interview'
+        commandOptions: 'tfplan'
