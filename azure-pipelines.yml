@@ -37,6 +37,12 @@ steps:
     environmentServiceNameAzureRM: 'terraform-interview'
     commandOptions: '-lock-timeout=5m'
 
+- task: PublishPipelineArtifact@1
+  displayName: Publish Terraform Plan
+  inputs:
+    targetPath: 'infra/vm/tfplan'
+    artifact: 'tfplan'
+
 - task: TerraformTaskV4@4
   displayName: Terraform Apply
   env:
