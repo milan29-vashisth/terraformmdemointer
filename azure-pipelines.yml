@@ -24,7 +24,7 @@ stages:
         terraformVersion: '1.15.3'
 
     - task: TerraformTaskV4@4
-      displayName: Init
+      displayName: Terraform Init
       inputs:
         provider: 'azurerm'
         command: 'init'
@@ -34,9 +34,10 @@ stages:
         backendAzureRmStorageAccountName: 'tfstate12345milan'
         backendAzureRmContainerName: 'tfstate'
         backendAzureRmKey: 'dev.terraform.tfstate'
+        commandOptions: '-reconfigure'
 
     - task: TerraformTaskV4@4
-      displayName: Plan
+      displayName: Terraform Plan
       env:
         TF_VAR_admin_username: $(admin-username)
         TF_VAR_admin_password: $(admin-password)
@@ -48,9 +49,9 @@ stages:
         commandOptions: '-out=tfplan'
 
     - task: PublishPipelineArtifact@1
-      displayName: Publish Plan Artifact
+      displayName: Publish tfplan artifact
       inputs:
-        targetPath: 'infra/vm/tfplan'
+        targetPath: 'infra/vm'
         artifact: 'tfplan'
 
 
@@ -63,14 +64,14 @@ stages:
   condition: succeeded()
 
   jobs:
-  - job: WaitForApproval
+  - job: ApprovalJob
     pool: server
     steps:
     - task: ManualValidation@0
       inputs:
         instructions: |
-          Please review Terraform plan artifact.
-          Approve only if infrastructure changes are expected.
+          Review Terraform plan before applying.
+          Approve only if changes are valid.
         onTimeout: 'reject'
 
 
@@ -90,8 +91,15 @@ stages:
       inputs:
         terraformVersion: '1.15.3'
 
+    # 🔥 FIX: Download artifact from Plan stage
+    - task: DownloadPipelineArtifact@2
+      displayName: Download tfplan
+      inputs:
+        artifact: 'tfplan'
+        path: 'infra/vm'
+
     - task: TerraformTaskV4@4
-      displayName: Apply
+      displayName: Terraform Apply
       env:
         TF_VAR_admin_username: $(admin-username)
         TF_VAR_admin_password: $(admin-password)
