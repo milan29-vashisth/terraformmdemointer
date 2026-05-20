@@ -34,21 +34,6 @@ steps:
     environmentServiceNameAzureRM: 'terraform-interview'
     commandOptions: '-var "admin_username=$(vm_username)" -var "admin_password=$(vm_password)"'
 
-- task: AzureCLI@2
-  displayName: 'Terraform Import RG'
-  inputs:
-    azureSubscription: 'terraform-interview'
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      cd $(System.DefaultWorkingDirectory)/infra/vm
-
-      terraform init
-
-      terraform import \
-        -var "admin_username=$(admin_username)" \
-        -var "admin_password=$(admin_password)" \
-        azurerm_resource_group.rg "/subscriptions/6349a94a-bcc7-4da7-8f36-2f6bc3017bf7/resourceGroups/rg-selfhosted-dev"
 - task: TerraformTaskV4@4
   displayName: Terraform Apply
   inputs:
