@@ -11,7 +11,7 @@ steps:
 
 - task: TerraformInstaller@1
   inputs:
-    terraformVersion: 'latest'
+    terraformVersion: '1.15.3'
 
 - task: TerraformTaskV4@4
   displayName: Terraform Init
@@ -23,7 +23,7 @@ steps:
     backendAzureRmResourceGroupName: 'tf-backend-fordemopratice-rg'
     backendAzureRmStorageAccountName: 'tfstate12345milan'
     backendAzureRmContainerName: 'tfstate'
-    backendAzureRmKey: "dev.terraform.tfstate"
+    backendAzureRmKey: 'dev.terraform.tfstate'
 
 - task: TerraformTaskV4@4
   displayName: Terraform Plan
@@ -35,14 +35,16 @@ steps:
     command: 'plan'
     workingDirectory: 'infra/vm'
     environmentServiceNameAzureRM: 'terraform-interview'
+    commandOptions: '-lock-timeout=5m'
 
 - task: TerraformTaskV4@4
   displayName: Terraform Apply
   env:
     TF_VAR_admin_username: $(admin-username)
-    TF_VAR_admin_password: $(admin-password
+    TF_VAR_admin_password: $(admin-password)
   inputs:
     provider: 'azurerm'
     command: 'apply'
     workingDirectory: 'infra/vm'
     environmentServiceNameAzureRM: 'terraform-interview'
+    commandOptions: '-auto-approve -lock-timeout=5m'
