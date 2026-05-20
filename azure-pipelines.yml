@@ -5,7 +5,7 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-- group: terraform-vars
+- group: kv-secrets
 
 steps:
 
@@ -27,18 +27,22 @@ steps:
 
 - task: TerraformTaskV4@4
   displayName: Terraform Plan
+  env:
+    TF_VAR_admin_username: $(admin-username)
+    TF_VAR_admin_password: $(admin-password)
   inputs:
     provider: 'azurerm'
     command: 'plan'
     workingDirectory: 'infra/vm'
     environmentServiceNameAzureRM: 'terraform-interview'
-    commandOptions: '-var "admin_username=$(vm_username)" -var "admin_password=$(vm_password)"'
 
 - task: TerraformTaskV4@4
   displayName: Terraform Apply
+  env:
+    TF_VAR_admin_username: $(admin-username)
+    TF_VAR_admin_password: $(admin-password
   inputs:
     provider: 'azurerm'
     command: 'apply'
     workingDirectory: 'infra/vm'
     environmentServiceNameAzureRM: 'terraform-interview'
-    commandOptions: '-auto-approve -var "admin_username=$(vm_username)" -var "admin_password=$(vm_password)"'
