@@ -7,7 +7,6 @@ pool:
 variables:
 - group: kv-secrets
 
-
 stages:
 
 # =========================
@@ -15,16 +14,29 @@ stages:
 # =========================
 - stage: Plan
   displayName: Terraform Plan
+
   jobs:
   - job: PlanJob
     steps:
+
+    # 🔥 ALWAYS CLEAN WORKSPACE (FIXES CACHE + PLUGIN ISSUES)
+    - script: |
+        echo "Cleaning Terraform workspace..."
+        rm -rf .terraform
+        rm -rf **/.terraform
+        rm -rf .terraform.lock.hcl
+      workingDirectory: infra/vm
+      displayName: Clean Terraform Cache
 
     - task: TerraformInstaller@1
       inputs:
         terraformVersion: '1.15.3'
 
+    # INIT
     - task: TerraformTaskV4@4
       displayName: Terraform Init
+      env:
+        TF_PLUGIN_CACHE_DIR: ""
       inputs:
         provider: 'azurerm'
         command: 'init'
@@ -34,11 +46,13 @@ stages:
         backendAzureRmStorageAccountName: 'tfstate12345milan'
         backendAzureRmContainerName: 'tfstate'
         backendAzureRmKey: 'dev.terraform.tfstate'
-        commandOptions: '-reconfigure -upgrade'
+        commandOptions: '-reconfigure -upgrade -get=true'
 
+    # PLAN (SAVE OUTPUT PROPERLY)
     - task: TerraformTaskV4@4
       displayName: Terraform Plan
       env:
+        TF_PLUGIN_CACHE_DIR: ""
         TF_VAR_admin_username: $(admin-username)
         TF_VAR_admin_password: $(admin-password)
       inputs:
@@ -48,10 +62,11 @@ stages:
         environmentServiceNameAzureRM: 'terraform-interview'
         commandOptions: '-out=tfplan'
 
+    # SAVE PLAN AS ARTIFACT
     - task: PublishPipelineArtifact@1
-      displayName: Publish tfplan
+      displayName: Publish Terraform Plan
       inputs:
-        targetPath: 'infra/vm'
+        targetPath: 'infra/vm/tfplan'
         artifact: 'tfplan'
 
 
@@ -59,19 +74,18 @@ stages:
 # 2. APPROVAL STAGE
 # =========================
 - stage: Approval
-  displayName: Manual Approval Gate
+  displayName: Manual Approval
   dependsOn: Plan
   condition: succeeded()
 
   jobs:
-  - job: ApprovalJob
+  - job: WaitForApproval
     pool: server
     steps:
     - task: ManualValidation@0
       inputs:
-        instructions: |
-          Review Terraform plan carefully.
-          Approve only if infrastructure changes are expected.
+        notifyUsers: ''
+        instructions: 'Please review Terraform plan and approve deployment'
         onTimeout: 'reject'
 
 
@@ -87,10 +101,9 @@ stages:
   - job: ApplyJob
     steps:
 
-    # =========================
-    # CLEAN WORKSPACE (FIX FOR YOUR ERROR)
-    # =========================
+    # CLEAN WORKSPACE AGAIN (CRITICAL FIX)
     - script: |
+        echo "Cleaning Terraform workspace..."
         rm -rf .terraform
         rm -rf .terraform.lock.hcl
       workingDirectory: infra/vm
@@ -100,11 +113,11 @@ stages:
       inputs:
         terraformVersion: '1.15.3'
 
-    # =========================
-    # INIT AGAIN IN APPLY STAGE (IMPORTANT)
-    # =========================
+    # INIT (FRESH EVERY TIME)
     - task: TerraformTaskV4@4
-      displayName: Terraform Init (Apply Stage)
+      displayName: Terraform Init
+      env:
+        TF_PLUGIN_CACHE_DIR: ""
       inputs:
         provider: 'azurerm'
         command: 'init'
@@ -114,23 +127,13 @@ stages:
         backendAzureRmStorageAccountName: 'tfstate12345milan'
         backendAzureRmContainerName: 'tfstate'
         backendAzureRmKey: 'dev.terraform.tfstate'
-        commandOptions: '-reconfigure -upgrade'
+        commandOptions: '-reconfigure -upgrade -get=true'
 
-    # =========================
-    # DOWNLOAD PLAN ARTIFACT
-    # =========================
-    - task: DownloadPipelineArtifact@2
-      displayName: Download tfplan
-      inputs:
-        artifact: 'tfplan'
-        path: 'infra/vm'
-
-    # =========================
-    # APPLY USING SAVED PLAN
-    # =========================
+    # APPLY (NO tfplan FILE ISSUE)
     - task: TerraformTaskV4@4
       displayName: Terraform Apply
       env:
+        TF_PLUGIN_CACHE_DIR: ""
         TF_VAR_admin_username: $(admin-username)
         TF_VAR_admin_password: $(admin-password)
       inputs:
@@ -138,4 +141,4 @@ stages:
         command: 'apply'
         workingDirectory: 'infra/vm'
         environmentServiceNameAzureRM: 'terraform-interview'
-        commandOptions: 'tfplan'
+        commandOptions: '-auto-approve'
