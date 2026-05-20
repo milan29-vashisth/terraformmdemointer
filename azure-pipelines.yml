@@ -18,7 +18,7 @@ stages:
   jobs:
   - job: PlanJob
     steps:
-
+    
     - task: TerraformInstaller@1
       inputs:
         terraformVersion: '1.15.3'
@@ -34,7 +34,7 @@ stages:
         backendAzureRmStorageAccountName: 'tfstate12345milan'
         backendAzureRmContainerName: 'tfstate'
         backendAzureRmKey: 'dev.terraform.tfstate'
-        commandOptions: '-reconfigure'
+        commandOptions: '-reconfigure -upgrade'
 
     - task: TerraformTaskV4@4
       displayName: Terraform Plan
