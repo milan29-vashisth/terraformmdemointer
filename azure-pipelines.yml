@@ -18,7 +18,7 @@ stages:
   jobs:
   - job: PlanJob
     steps:
-    
+
     - task: TerraformInstaller@1
       inputs:
         terraformVersion: '1.15.3'
@@ -49,7 +49,7 @@ stages:
         commandOptions: '-out=tfplan'
 
     - task: PublishPipelineArtifact@1
-      displayName: Publish tfplan artifact
+      displayName: Publish tfplan
       inputs:
         targetPath: 'infra/vm'
         artifact: 'tfplan'
@@ -70,8 +70,8 @@ stages:
     - task: ManualValidation@0
       inputs:
         instructions: |
-          Review Terraform plan before applying.
-          Approve only if changes are valid.
+          Review Terraform plan carefully.
+          Approve only if infrastructure changes are expected.
         onTimeout: 'reject'
 
 
@@ -87,17 +87,47 @@ stages:
   - job: ApplyJob
     steps:
 
+    # =========================
+    # CLEAN WORKSPACE (FIX FOR YOUR ERROR)
+    # =========================
+    - script: |
+        rm -rf .terraform
+        rm -rf .terraform.lock.hcl
+      workingDirectory: infra/vm
+      displayName: Clean Terraform Cache
+
     - task: TerraformInstaller@1
       inputs:
         terraformVersion: '1.15.3'
 
-    # 🔥 FIX: Download artifact from Plan stage
+    # =========================
+    # INIT AGAIN IN APPLY STAGE (IMPORTANT)
+    # =========================
+    - task: TerraformTaskV4@4
+      displayName: Terraform Init (Apply Stage)
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: 'infra/vm'
+        backendServiceArm: 'terraform-interview'
+        backendAzureRmResourceGroupName: 'tf-backend-fordemopratice-rg'
+        backendAzureRmStorageAccountName: 'tfstate12345milan'
+        backendAzureRmContainerName: 'tfstate'
+        backendAzureRmKey: 'dev.terraform.tfstate'
+        commandOptions: '-reconfigure -upgrade'
+
+    # =========================
+    # DOWNLOAD PLAN ARTIFACT
+    # =========================
     - task: DownloadPipelineArtifact@2
       displayName: Download tfplan
       inputs:
         artifact: 'tfplan'
         path: 'infra/vm'
 
+    # =========================
+    # APPLY USING SAVED PLAN
+    # =========================
     - task: TerraformTaskV4@4
       displayName: Terraform Apply
       env:
